@@ -1,0 +1,18 @@
+<?php $__env->startSection('title', $category->exists?'Edit Category':'Add Category'); ?>
+<?php $__env->startSection('heading', $category->exists?'Edit Category':'Add Category'); ?>
+<?php $__env->startSection('content'); ?>
+<div class="panel"><form method="POST" action="<?php echo e($category->exists?route('admin.service-categories.update',$category):route('admin.service-categories.store')); ?>"><?php echo csrf_field(); ?> <?php if($category->exists): ?><?php echo method_field('PUT'); ?><?php endif; ?>
+<div class="form-row">
+<div class="form-group col-md-6"><label>Service *</label><select required name="service_id" class="form-control"><?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($s->id); ?>" <?php if(old('service_id',$category->service_id)==$s->id): echo 'selected'; endif; ?>><?php echo e($s->name); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></select></div>
+<div class="form-group col-md-6"><label>Parent category</label><select name="parent_id" class="form-control"><option value="">Top-level category</option><?php $__currentLoopData = $parents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($p->id); ?>" <?php if(old('parent_id',$category->parent_id)==$p->id): echo 'selected'; endif; ?>><?php echo e($p->name); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></select></div>
+<div class="form-group col-md-6"><label>Name *</label><input required name="name" class="form-control" value="<?php echo e(old('name',$category->name)); ?>"></div>
+<div class="form-group col-md-6"><label>Slug (optional)</label><input name="slug" class="form-control" value="<?php echo e(old('slug',$category->slug)); ?>"></div>
+<div class="form-group col-md-6"><label>Icon class/name</label><input name="icon" class="form-control" value="<?php echo e(old('icon',$category->icon)); ?>"></div>
+<div class="form-group col-md-6"><label>Image path</label><input name="image" class="form-control" value="<?php echo e(old('image',$category->image)); ?>"></div>
+<div class="form-group col-md-3"><label>Sort order</label><input type="number" min="0" name="sort_order" class="form-control" value="<?php echo e(old('sort_order',$category->sort_order ?? 0)); ?>"></div>
+<div class="form-group col-md-9"><label>Description</label><textarea name="description" class="form-control"><?php echo e(old('description',$category->description)); ?></textarea></div>
+<div class="form-group col-12"><div class="custom-control custom-checkbox"><input type="checkbox" class="custom-control-input" id="is_active" name="is_active" value="1" <?php if(old('is_active',$category->is_active ?? true)): echo 'checked'; endif; ?>><label class="custom-control-label" for="is_active">Active</label></div></div>
+</div><button class="btn btn-gold">Save Category</button> <a class="btn btn-light" href="<?php echo e(route('admin.service-categories.index')); ?>">Cancel</a></form></div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.admin', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\tolbazar\resources\views/admin/service-management/categories/form.blade.php ENDPATH**/ ?>

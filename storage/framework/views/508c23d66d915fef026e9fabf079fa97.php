@@ -1,0 +1,16 @@
+<?php $__env->startSection('title','Service Categories'); ?>
+<?php $__env->startSection('heading','Service Categories'); ?>
+<?php $__env->startSection('content'); ?>
+<div class="panel mb-3">
+<form class="form-row align-items-end" method="GET">
+<div class="form-group col-md-5"><label>Service</label><select name="service_id" class="form-control"><option value="">All services</option><?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($s->id); ?>" <?php if(request('service_id')==$s->id): echo 'selected'; endif; ?>><?php echo e($s->name); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></select></div>
+<div class="form-group col-md-3"><label>Status</label><select name="status" class="form-control"><option value="">All</option><option value="active" <?php if(request('status')==='active'): echo 'selected'; endif; ?>>Active</option><option value="inactive" <?php if(request('status')==='inactive'): echo 'selected'; endif; ?>>Inactive</option></select></div>
+<div class="form-group col-md-4"><button class="btn btn-secondary">Filter</button> <a class="btn btn-gold" href="<?php echo e(route('admin.service-categories.create')); ?>">+ Add Category</a></div>
+</form></div>
+<div class="panel table-responsive"><table class="table table-hover"><thead><tr><th>Category</th><th>Service</th><th>Parent</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+<?php $__empty_1 = true; $__currentLoopData = $categories; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $c): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?><tr><td><strong><?php echo e($c->name); ?></strong><div class="muted"><?php echo e($c->slug); ?></div></td><td><?php echo e($c->service?->name); ?></td><td><?php echo e($c->parent?->name ?? '—'); ?></td><td><span class="badge badge-<?php echo e($c->is_active?'success':'secondary'); ?>"><?php echo e($c->is_active?'Active':'Inactive'); ?></span></td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="<?php echo e(route('admin.service-categories.edit',$c)); ?>">Edit</a> <form class="d-inline" method="POST" action="<?php echo e(route('admin.service-categories.toggle-active',$c)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?><button class="btn btn-sm btn-outline-warning">Toggle</button></form> <form class="d-inline" method="POST" action="<?php echo e(route('admin.service-categories.destroy',$c)); ?>" data-confirm="Delete this category?"><?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?><button class="btn btn-sm btn-outline-danger">Delete</button></form></td></tr>
+<?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?><tr><td colspan="6" class="text-center text-muted">No categories found.</td></tr><?php endif; ?>
+</tbody></table><?php echo e($categories->links()); ?></div>
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.admin', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\tolbazar\resources\views/admin/service-management/categories/index.blade.php ENDPATH**/ ?>
