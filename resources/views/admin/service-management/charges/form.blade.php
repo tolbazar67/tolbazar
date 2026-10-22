@@ -1,0 +1,21 @@
+@extends('layouts.admin')
+@section('title',$rule->exists?'Edit Customer Charge':'Add Customer Charge')
+@section('heading',$rule->exists?'Edit Customer Charge':'Add Customer Charge')
+@section('content')
+<div class="panel"><form method="POST" action="{{ $rule->exists?route('admin.customer-charge-rules.update',$rule):route('admin.customer-charge-rules.store') }}">@csrf @if($rule->exists)@method('PUT')@endif
+<div class="form-row">
+<div class="form-group col-md-6"><label>Service *</label><select required name="service_id" class="form-control">@foreach($services as $s)<option value="{{ $s->id }}" @selected(old('service_id',$rule->service_id)==$s->id)>{{ $s->name }}</option>@endforeach</select></div>
+<div class="form-group col-md-6"><label>Category</label><select name="category_id" class="form-control"><option value="">All categories</option>@foreach($categories as $c)<option value="{{ $c->id }}" @selected(old('category_id',$rule->category_id)==$c->id)>{{ $c->name }} (service #{{ $c->service_id }})</option>@endforeach</select></div>
+<div class="form-group col-md-6"><label>Charge name *</label><input required name="name" class="form-control" value="{{ old('name',$rule->name) }}"></div>
+<div class="form-group col-md-6"><label>Charge code</label><input name="charge_code" class="form-control" value="{{ old('charge_code',$rule->charge_code) }}"></div>
+<div class="form-group col-md-4"><label>Type *</label><select name="charge_type" class="form-control">@foreach(['fixed','percentage','per_item'] as $v)<option value="{{ $v }}" @selected(old('charge_type',$rule->charge_type)===$v)>{{ ucfirst(str_replace('_',' ',$v)) }}</option>@endforeach</select></div>
+<div class="form-group col-md-4"><label>Rate *</label><input required type="number" min="0" step="0.0001" name="rate" class="form-control" value="{{ old('rate',$rule->rate ?? 0) }}"></div>
+<div class="form-group col-md-4"><label>Currency *</label><input required maxlength="3" name="currency" class="form-control" value="{{ old('currency',$rule->currency ?? 'NPR') }}"></div>
+<div class="form-group col-md-6"><label>Calculation basis *</label><select name="calculation_basis" class="form-control"><option value="subtotal" @selected(old('calculation_basis',$rule->calculation_basis)==='subtotal')>Subtotal</option><option value="subtotal_after_discount" @selected(old('calculation_basis',$rule->calculation_basis)==='subtotal_after_discount')>Subtotal after discount</option></select></div>
+<div class="form-group col-md-3"><label>Minimum charge</label><input type="number" min="0" step=".01" name="min_charge" class="form-control" value="{{ old('min_charge',$rule->min_charge) }}"></div>
+<div class="form-group col-md-3"><label>Maximum charge</label><input type="number" min="0" step=".01" name="max_charge" class="form-control" value="{{ old('max_charge',$rule->max_charge) }}"></div>
+<div class="form-group col-md-6"><label>Starts at</label><input type="datetime-local" name="starts_at" class="form-control" value="{{ old('starts_at',$rule->starts_at?->format('Y-m-d\TH:i')) }}"></div>
+<div class="form-group col-md-6"><label>Ends at</label><input type="datetime-local" name="ends_at" class="form-control" value="{{ old('ends_at',$rule->ends_at?->format('Y-m-d\TH:i')) }}"></div>
+<div class="form-group col-12"><div class="custom-control custom-checkbox"><input id="taxable" type="checkbox" name="is_taxable" value="1" class="custom-control-input" @checked(old('is_taxable',$rule->is_taxable ?? false))><label class="custom-control-label" for="taxable">This charge is taxable (apply tax only through checkout calculation)</label></div><div class="custom-control custom-checkbox mt-2"><input id="refundable" type="checkbox" name="is_refundable" value="1" class="custom-control-input" @checked(old('is_refundable',$rule->is_refundable ?? false))><label class="custom-control-label" for="refundable">Refundable</label></div><div class="custom-control custom-checkbox mt-2"><input id="active" type="checkbox" name="is_active" value="1" class="custom-control-input" @checked(old('is_active',$rule->is_active ?? true))><label class="custom-control-label" for="active">Active</label></div></div>
+</div><button class="btn btn-gold">Save Charge</button> <a class="btn btn-light" href="{{ route('admin.customer-charge-rules.index') }}">Cancel</a></form></div>
+@endsection
