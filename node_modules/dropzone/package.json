@@ -1,0 +1,74 @@
+{
+  "name": "dropzone",
+  "version": "6.3.5",
+  "description": "Handles drag and drop of files for you.",
+  "keywords": [
+    "drag and drop",
+    "dragndrop",
+    "file upload",
+    "upload"
+  ],
+  "homepage": "https://www.dropzone.dev/",
+  "bugs": {
+    "url": "https://github.com/enyo/dropzone/issues",
+    "email": "m@tias.me"
+  },
+  "license": "MIT",
+  "maintainers": [
+    {
+      "name": "Matias Simon",
+      "email": "m@tias.me",
+      "web": "https://www.matsimon.dev"
+    }
+  ],
+  "contributors": [
+    {
+      "name": "Matias Simon",
+      "email": "m@tias.me",
+      "web": "https://www.matsimon.dev"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/enyo/dropzone.git",
+    "directory": "packages/dropzone"
+  },
+  "files": [
+    "dist",
+    "src",
+    "composer.json",
+    "CHANGELOG.md"
+  ],
+  "main": "dist/dropzone.js",
+  "module": "dist/dropzone.mjs",
+  "types": "dist/dropzone.d.ts",
+  "devDependencies": {
+    "@vitest/browser-playwright": "^4.1.11",
+    "@vitest/coverage-v8": "^4.1.11",
+    "lightningcss-cli": "^1.33.0",
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  },
+  "browserslist": [
+    "chrome >= 58",
+    "firefox >= 54",
+    "safari >= 11",
+    "edge >= 16"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "standalone": "dist/dropzone-min.js",
+  "scripts": {
+    "watch": "vite build --watch",
+    "build": "vite build && vite build --config vite.config.global.mjs && pnpm run css && pnpm run build:types",
+    "css": "lightningcss --minify --sourcemap --browserslist src/dropzone.css -o dist/dropzone.css && lightningcss --minify --sourcemap --browserslist src/basic.css -o dist/basic.css",
+    "build:types": "tsc",
+    "typecheck": "tsc --noEmit -p tsconfig.typecheck.json",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test"
+  }
+}
