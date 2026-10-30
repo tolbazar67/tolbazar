@@ -6,10 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasFactory, Notifiable, SoftDeletes;
 
     /*
     |--------------------------------------------------------------------------
@@ -40,7 +42,6 @@ class User extends Authenticatable
         'avatar',
         'country',
         'mobile_number',
-        'phone',
         'date_of_birth',
         'gender',
         'password',
@@ -50,12 +51,37 @@ class User extends Authenticatable
         'active_mode',
         'is_branch_staff',
         'staff_owner_id',
+        'cover_photo',
+        'bio',
+        'website',
+        'location',
+        'mobile_verified_at',
+        'mobile_otp',
+        'mobile_otp_expires_at',
+        'account_status',
+        'deactivated_at',
+        'deletion_requested_at',
+        'deletion_scheduled_at',
+        'relationship_status',
+        'categories',
+        'languages',
+        'hobbies',
+        'address',
+        'latitude',
+        'longitude',
+        'pending_email',
+        'email_change_otp',
+        'email_change_otp_expires_at',
+        'pending_mobile', 'mobile_change_otp', 'mobile_change_otp_expires_at',
     ];
 
     protected $hidden = [
         'password',
         'remember_token',
         'otp',
+        'mobile_otp',
+        'email_change_otp',
+        'mobile_change_otp',
     ];
 
     protected function casts(): array
@@ -66,6 +92,18 @@ class User extends Authenticatable
             'date_of_birth'     => 'date',
             'password'          => 'hashed',
             'is_branch_staff'   => 'boolean',
+            'mobile_verified_at'     => 'datetime',
+            'mobile_otp_expires_at'  => 'datetime',
+            'deactivated_at'         => 'datetime',
+            'deletion_requested_at'  => 'datetime',
+            'deletion_scheduled_at'  => 'datetime',
+            'categories' => 'array',
+            'languages'  => 'array',
+            'hobbies'    => 'array',
+            'latitude'   => 'decimal:7',
+            'longitude'  => 'decimal:7',
+            'email_change_otp_expires_at' => 'datetime',
+            'mobile_change_otp_expires_at' => 'datetime',
         ];
     }
 
@@ -93,6 +131,21 @@ class User extends Authenticatable
     public function managedBranches()
     {
         return $this->hasMany(SellerBranch::class, 'manager_id');
+    }
+
+    public function websites(): HasMany
+    {
+        return $this->hasMany(UserWebsite::class)->orderBy('sort_order');
+    }
+
+    public function works(): HasMany
+    {
+        return $this->hasMany(UserWork::class)->orderBy('sort_order');
+    }
+
+    public function educations(): HasMany
+    {
+        return $this->hasMany(UserEducation::class)->orderBy('sort_order');
     }
 
     /*
@@ -231,6 +284,91 @@ class User extends Authenticatable
 
     /*
     |--------------------------------------------------------------------------
+    | NEW: ACCOUNT STATUS HELPERS
+    |--------------------------------------------------------------------------
+    */
+
+    public function isActive(): bool
+    {
+        return $this->account_status === 'active' && is_null($this->deleted_at);
+    }
+
+    public function isDeactivated(): bool
+    {
+        return $this->account_status === 'deactivated';
+    }
+
+    public function isPendingDeletion(): bool
+    {
+        return $this->account_status === 'deletion_pending';
+    }
+
+    public function isSoftDeleted(): bool
+    {
+        return !is_null($this->deleted_at);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NEW: ACTIVE MODES (for Account Switcher)
+    |--------------------------------------------------------------------------
+    */
+
+    /**
+     * Return all modes this user can switch into based on their roles.
+     *
+     * @return array<int, array{mode:string, label:string, icon:string, route:string}>
+     */
+    public function getAvailableModes(): array
+    {
+        $modes = [];
+
+        if ($this->hasRole('Customer')) {
+            $modes[] = [
+                'mode'  => 'customer',
+                'label' => 'Customer',
+                'icon'  => 'shopping-bag',
+                'route' => 'home',
+            ];
+        }
+
+        if ($this->isSellerOwner() || $this->isBranchStaff()) {
+            $modes[] = [
+                'mode'  => 'seller',
+                'label' => 'Seller',
+                'icon'  => 'store',
+                'route' => 'seller.dashboard',
+            ];
+        }
+
+        if ($this->hasAnyRole(['Super Admin', 'Admin'])) {
+            $modes[] = [
+                'mode'  => 'admin',
+                'label' => 'Admin',
+                'icon'  => 'shield-check',
+                'route' => 'admin.dashboard',
+            ];
+        }
+
+        if ($this->hasRole('Delivery Boy')) {
+            $modes[] = [
+                'mode'  => 'delivery',
+                'label' => 'Delivery',
+                'icon'  => 'truck',
+                'route' => 'delivery.dashboard',
+            ];
+        }
+
+        return $modes;
+    }
+
+    public function canSwitchTo(string $mode): bool
+    {
+        return in_array($mode, array_column($this->getAvailableModes(), 'mode'), true);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
     | BRANCH ACCESS
     |--------------------------------------------------------------------------
     */
@@ -294,4 +432,83 @@ class User extends Authenticatable
         if (!$this->isBranchStaff()) return null;
         return $this->isBranchManager() ? 'Manager' : 'Staff';
     }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if (
+            $this->avatar &&
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($this->avatar)
+        ) {
+            return asset('storage/' . ltrim($this->avatar, '/'));
+        }
+
+        $initial = urlencode(substr($this->name ?? 'U', 0, 1));
+
+        return "https://ui-avatars.com/api/?name={$initial}&size=200&background=0d6efd&color=fff";
+    }
+
+    public function getCoverPhotoUrlAttribute(): ?string
+    {
+        if (
+            $this->cover_photo &&
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($this->cover_photo)
+        ) {
+            return asset('storage/' . ltrim($this->cover_photo, '/'));
+        }
+
+        return null;
+    }
+
+    public function isEmailVerified(): bool
+    {
+        return !is_null($this->email_verified_at);
+    }
+
+    public function isMobileVerified(): bool
+    {
+        return !is_null($this->mobile_verified_at);
+    }
+
+    public function isFullyVerified(): bool
+    {
+        return $this->isEmailVerified() && $this->isMobileVerified();
+    }
+
+    public function getVerificationStatusAttribute(): array
+    {
+        return [
+            'email'  => [
+                'verified' => $this->isEmailVerified(),
+                'label'    => $this->isEmailVerified() ? 'Verified' : 'Not Verified',
+                'value'    => $this->email,
+            ],
+            'mobile' => [
+                'verified' => $this->isMobileVerified(),
+                'label'    => $this->isMobileVerified() ? 'Verified' : 'Not Verified',
+                'value'    => $this->mobile_number,
+            ],
+            'overall' => $this->isFullyVerified() ? 'Fully Verified' : 'Partially Verified',
+        ];
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | NEW: PUBLIC PROFILE URL
+    |--------------------------------------------------------------------------
+    */
+
+    public function getProfileUrlAttribute(): string
+    {
+        return route('profile.show', $this->username ?: $this->id);
+    }
+
+    public function loginActivities(): HasMany
+    {
+        return $this->hasMany(LoginActivity::class)->latest();
+    }
+
+    public function wallet(): \Illuminate\Database\Eloquent\Relations\HasOne
+{
+    return $this->hasOne(Wallet::class);
+}
 }

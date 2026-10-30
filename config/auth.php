@@ -114,4 +114,17 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+/*
+|--------------------------------------------------------------------------
+| Admin Portal Security
+|--------------------------------------------------------------------------
+*/
+'admin_login_path'           => env('ADMIN_LOGIN_PATH', 'admin-access-4b9f'),
+
+'admin_ip_whitelist_enabled' => (bool) env('ADMIN_IP_WHITELIST_ENABLED', true),
+'admin_panel_ip_enforce'     => (bool) env('ADMIN_PANEL_IP_ENFORCE', false),
+'admin_allowed_ips'          => array_values(array_filter(array_map(
+    'trim',
+    explode(',', env('ADMIN_ALLOWED_IPS', '127.0.0.1'))
+))),
 ];

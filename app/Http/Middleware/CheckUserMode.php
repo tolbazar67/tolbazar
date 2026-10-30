@@ -9,14 +9,39 @@ use Symfony\Component\HttpFoundation\Response;
 class CheckUserMode
 {
     /**
-     * Mode → allowed role names.
+     * Role IDs:
+     *  1 = Admin
+     *  2 = Super Admin
+     *  3 = Customer
+     *  4 = Seller
+     *  5 = Delivery Boy
+     *  6 = Branch Manager
+     *  7 = Branch Staff
+     */
+    private const ROLE_ID = [
+        'admin'          => 1,
+        'super_admin'    => 2,
+        'customer'       => 3,
+        'seller'         => 4,
+        'delivery_boy'   => 5,
+        'branch_manager' => 6,
+        'branch_staff'   => 7,
+    ];
+
+    /**
+     * Mode → allowed role IDs.
      * Seller mode handled separately (needs branch/profile setup).
      */
-    private const MODE_ROLES = [
-        'customer' => ['Customer'],
-        'delivery' => ['Delivery Boy'],
-        'admin'    => ['Super Admin', 'Admin'],
+    private const MODE_ROLE_IDS = [
+        'customer' => [3],
+        'delivery' => [5],
+        'admin'    => [1, 2],
     ];
+
+    /**
+     * Seller-related role IDs.
+     */
+    private const SELLER_ROLE_IDS = [4, 6, 7];
 
     public function handle(Request $request, Closure $next, string $mode): Response
     {
@@ -28,11 +53,11 @@ class CheckUserMode
         }
 
         // ============================================================
-        // SELLER MODE — check role first, then branch/profile setup
+        // SELLER MODE
         // ============================================================
         if ($mode === 'seller') {
             $hasSellerRole = $user->roles()
-                ->whereIn('name', ['Seller', 'Branch Manager', 'Branch Staff'])
+                ->whereIn('roles.id', self::SELLER_ROLE_IDS)
                 ->exists();
 
             if (!$hasSellerRole) {
@@ -43,7 +68,7 @@ class CheckUserMode
                 abort(403, 'Only seller accounts can access this panel.');
             }
 
-            // ---- Branch Staff / Manager ----
+            // ---- Branch Staff / Manager (role 6, 7) ----
             if ($user->isBranchStaff()) {
                 $staff = $user->branchStaff;
 
@@ -51,12 +76,10 @@ class CheckUserMode
                     abort(403, 'Your staff account is inactive.');
                 }
 
-                // Keep active_mode in sync
                 if ($user->active_mode !== 'seller') {
                     $user->update(['active_mode' => 'seller']);
                 }
 
-                // Force own branch into session
                 session([
                     'active_branch_id'   => $staff->branch_id,
                     'active_branch_role' => $staff->role,
@@ -65,7 +88,7 @@ class CheckUserMode
                 return $next($request);
             }
 
-            // ---- Seller Owner ----
+            // ---- Seller Owner (role 4) ----
             $seller = $user->sellerProfile;
 
             if (!$seller) {
@@ -73,12 +96,10 @@ class CheckUserMode
                     ->with('error', 'Please complete store registration.');
             }
 
-            // Keep active_mode in sync
             if ($user->active_mode !== 'seller') {
                 $user->update(['active_mode' => 'seller']);
             }
 
-            // Ensure an active branch exists in session
             if (!session()->has('active_branch_id')) {
                 $defaultBranch = $seller->branches()
                     ->where('is_default', 1)
@@ -103,19 +124,40 @@ class CheckUserMode
         // ============================================================
         // OTHER MODES (customer / delivery / admin)
         // ============================================================
-        if (!isset(self::MODE_ROLES[$mode])) {
+        if (!isset(self::MODE_ROLE_IDS[$mode])) {
             abort(403, 'Unknown mode requested.');
         }
 
         $hasAccess = $user->roles()
-            ->whereIn('name', self::MODE_ROLES[$mode])
+            ->whereIn('roles.id', self::MODE_ROLE_IDS[$mode])
             ->exists();
 
         if (!$hasAccess) {
             abort(403, 'You do not have access to this mode.');
         }
 
-        // Sync active_mode (role is valid, so it's safe to force)
+        // ============================================================
+        // NEW: STRICT SEPARATION — sellers cannot enter customer mode
+        // ============================================================
+        if ($mode === 'customer') {
+            $isSeller = $user->roles()
+                ->whereIn('roles.id', self::SELLER_ROLE_IDS)
+                ->exists();
+
+            if ($isSeller) {
+                abort(403, 'Seller accounts cannot access customer mode.');
+            }
+        }
+
+        // ============================================================
+        // NEW: Strict active_mode check
+        // ============================================================
+        if ($user->active_mode !== $mode) {
+            abort(403, "You must switch to {$mode} mode first.");
+        }
+
+        // Sync active_mode (aba yeha pugdaina kinnaki mathi block gareko chha,
+        // tara safety ko lagi rakhya)
         if ($user->active_mode !== $mode) {
             $user->update(['active_mode' => $mode]);
             session()->forget(['active_branch_id', 'active_branch_role']);

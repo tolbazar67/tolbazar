@@ -11,6 +11,7 @@ class CustomerChargeRule extends Model
     use HasFactory;
 
     protected $fillable = [
+        'seller_id',
         'service_id',
         'category_id',
         'name',
@@ -51,10 +52,35 @@ class CustomerChargeRule extends Model
 
     public function category(): BelongsTo
     {
-        return $this->belongsTo(
-            ServiceCategory::class,
-            'category_id'
-        );
+        return $this->belongsTo(ServiceCategory::class, 'category_id');
+    }
+
+    public function seller(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'seller_id');
+    }
+
+    /** Global (admin) + seller aafno rules */
+    public function scopeForSeller($query, ?int $sellerId)
+    {
+        return $query->where(function ($q) use ($sellerId) {
+            $q->whereNull('seller_id');
+            if ($sellerId) {
+                $q->orWhere('seller_id', $sellerId);
+            }
+        });
+    }
+
+    /** Seller ko aafno matra */
+    public function scopeOwnedBy($query, int $sellerId)
+    {
+        return $query->where('seller_id', $sellerId);
+    }
+
+    /** Global matra */
+    public function scopeGlobal($query)
+    {
+        return $query->whereNull('seller_id');
     }
 
     public function scopeActive($query)
@@ -62,13 +88,7 @@ class CustomerChargeRule extends Model
         $now = now();
 
         return $query->where('is_active', true)
-            ->where(function ($q) use ($now) {
-                $q->whereNull('starts_at')
-                    ->orWhere('starts_at', '<=', $now);
-            })
-            ->where(function ($q) use ($now) {
-                $q->whereNull('ends_at')
-                    ->orWhere('ends_at', '>=', $now);
-            });
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', $now))
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', $now));
     }
 }

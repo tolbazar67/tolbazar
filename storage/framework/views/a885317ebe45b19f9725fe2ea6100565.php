@@ -1,283 +1,98 @@
-
-
-<?php $__env->startSection('title', 'My Products'); ?>
+<?php $__env->startSection('title', 'Products'); ?>
 
 <?php $__env->startSection('content'); ?>
 <div class="container-fluid py-4">
-
-    
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <h3 class="fw-bold mb-1">📦 Products</h3>
-            <p class="text-muted mb-0 small">
-                Manage products for <strong><?php echo e($branch->branch_name); ?></strong>
-            </p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div><h1 class="h3 mb-1">Products & Services</h1><p class="text-muted mb-0">Manage listings for your branches.</p></div>
+        <div class="d-flex flex-wrap">
+            <a href="<?php echo e(route('seller.products.featured', ['branch_id' => $branch->id])); ?>" class="btn btn-outline-warning mr-2 mb-2"><i class="fas fa-star mr-1"></i> Featured</a>
+            <a href="<?php echo e(route('seller.products.create', ['branch_id' => $branch->id])); ?>" class="btn btn-primary mb-2"><i class="fas fa-plus mr-1"></i> Add product</a>
         </div>
-        <?php if(!$noServicesFlag): ?>
-            <a href="<?php echo e(route('seller.products.create', ['branch_id' => $branch->id])); ?>"
-               class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Add Product
-            </a>
-        <?php endif; ?>
     </div>
 
-    
-    <?php if($noServicesFlag): ?>
-        <div class="alert alert-warning d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill fs-4"></i>
-            <div>
-                <strong>No services enabled on this branch.</strong>
-                <p class="mb-0 small">Please enable at least one service first.</p>
-            </div>
-            <a href="<?php echo e(route('seller.services.index', ['branch_id' => $branch->id])); ?>"
-               class="btn btn-warning btn-sm ms-auto text-white">
-                <i class="bi bi-grid-3x3-gap-fill"></i> Enable Services
-            </a>
-        </div>
-    <?php endif; ?>
+    <?php if(session('success')): ?><div class="alert alert-success alert-dismissible fade show"><?php echo e(session('success')); ?><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div><?php endif; ?>
+    <?php if(session('error')): ?><div class="alert alert-danger alert-dismissible fade show"><?php echo e(session('error')); ?><button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div><?php endif; ?>
 
-    
-    <?php if(session('success')): ?>
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle-fill me-1"></i> <?php echo e(session('success')); ?>
-
-            <button class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-    <?php if(session('error')): ?>
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i> <?php echo e(session('error')); ?>
-
-            <button class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    
-    <?php if($branches->count() > 1): ?>
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body py-2">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="text-muted small fw-semibold">Branch:</span>
-                    <?php $__currentLoopData = $branches; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $b): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                        <a href="<?php echo e(route('seller.products.index', ['branch_id' => $b->id])); ?>"
-                           class="btn btn-sm <?php echo e($b->id == $branch->id ? 'btn-primary' : 'btn-outline-secondary'); ?>">
-                            <?php echo e($b->branch_name); ?>
-
-                            <?php if($b->is_default): ?>
-                                <span class="badge bg-warning text-dark" style="font-size:.6rem;">HQ</span>
-                            <?php endif; ?>
-                        </a>
-                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <?php if(!$noServicesFlag): ?>
-        
-        <div class="row g-3 mb-3">
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Total</div>
-                        <h3 class="fw-bold mb-0"><?php echo e($stats['total']); ?></h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Active</div>
-                        <h3 class="fw-bold mb-0 text-success"><?php echo e($stats['active']); ?></h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Inactive</div>
-                        <h3 class="fw-bold mb-0 text-secondary"><?php echo e($stats['inactive']); ?></h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Out of Stock</div>
-                        <h3 class="fw-bold mb-0 text-danger"><?php echo e($stats['out_of_stock']); ?></h3>
-                    </div>
-                </div>
-            </div>
+    <?php if(!empty($noServicesFlag)): ?>
+        <div class="card border-0 shadow-sm"><div class="card-body text-center py-5">
+            <i class="fas fa-layer-group fa-3x text-muted mb-3"></i><h4>No services enabled</h4>
+            <p class="text-muted">Enable a service for this branch before adding a product or service listing.</p>
+            <a class="btn btn-primary" href="<?php echo e(route('seller.services.index', ['branch_id' => $branch->id])); ?>">Manage branch services</a>
+        </div></div>
+    <?php else: ?>
+        <div class="row mb-4">
+            <?php $__currentLoopData = [
+                ['Total listings', $stats['total'] ?? 0, 'fa-boxes', 'primary'],
+                ['Active', $stats['active'] ?? 0, 'fa-check-circle', 'success'],
+                ['Inactive', $stats['inactive'] ?? 0, 'fa-pause-circle', 'secondary'],
+                ['Out of stock', $stats['out_of_stock'] ?? 0, 'fa-exclamation-triangle', 'danger'],
+            ]; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as [$label, $count, $icon, $color]): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                <div class="col-6 col-xl-3 mb-3"><div class="card border-0 shadow-sm h-100"><div class="card-body d-flex align-items-center">
+                    <div class="rounded bg-light p-3 mr-3"><i class="fas <?php echo e($icon); ?> text-<?php echo e($color); ?> fa-lg"></i></div>
+                    <div><div class="text-muted small"><?php echo e($label); ?></div><div class="h4 mb-0"><?php echo e(number_format($count)); ?></div></div>
+                </div></div></div>
+            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
         </div>
 
-        
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body">
-                <form method="GET" class="row g-2">
-                    <input type="hidden" name="branch_id" value="<?php echo e($branch->id); ?>">
-
-                    <div class="col-md-4">
-                        <input type="text" name="search"
-                               value="<?php echo e(request('search')); ?>"
-                               class="form-control"
-                               placeholder="Search by name, SKU...">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="service_id" class="form-select" onchange="this.form.submit()">
-                            <option value="">All Services</option>
-                            <?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $s): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                <option value="<?php echo e($s->id); ?>"
-                                    <?php echo e(request('service_id') == $s->id ? 'selected' : ''); ?>>
-                                    <?php echo e($s->name); ?>
-
-                                </option>
-                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="status" class="form-select" onchange="this.form.submit()">
-                            <option value="">All Status</option>
-                            <option value="active"       <?php echo e(request('status') === 'active' ? 'selected' : ''); ?>>Active</option>
-                            <option value="inactive"     <?php echo e(request('status') === 'inactive' ? 'selected' : ''); ?>>Inactive</option>
-                            <option value="out_of_stock" <?php echo e(request('status') === 'out_of_stock' ? 'selected' : ''); ?>>Out of Stock</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 d-flex gap-2">
-                        <button class="btn btn-outline-primary flex-fill">Filter</button>
-                        <?php if(request()->hasAny(['search', 'service_id', 'status'])): ?>
-                            <a href="<?php echo e(route('seller.products.index', ['branch_id' => $branch->id])); ?>"
-                               class="btn btn-outline-secondary">
-                                <i class="bi bi-x-lg"></i>
-                            </a>
-                        <?php endif; ?>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        
-        <div class="card border-0 shadow-sm">
-            
-<div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-            <tr>
-                <th>Item</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Created By</th>
-                <th>Status</th>
-                <th class="text-end">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php $__empty_1 = true; $__currentLoopData = $products; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $p): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
-                
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            <?php if($p->image_url): ?>
-                                <img src="<?php echo e($p->image_url); ?>"
-                                     class="rounded"
-                                     style="width: 42px; height: 42px; object-fit: cover;">
-                            <?php endif; ?>
-                            <div>
-                                <div class="fw-semibold"><?php echo e($p->name); ?></div>
-                                <div class="text-muted small"><?php echo e($p->sku); ?></div>
-                            </div>
-                        </div>
-                    </td>
-                    
-                    <td class="fw-semibold">Rs. <?php echo e(number_format($p->price, 2)); ?></td>
-                    <td>
-                        <?php if($p->stock_quantity > 0): ?>
-                            <span class="badge bg-success-subtle text-success">
-                                <?php echo e($p->stock_quantity); ?> in stock
-                            </span>
-                        <?php else: ?>
-                            <span class="badge bg-danger-subtle text-danger">Out of stock</span>
-                        <?php endif; ?>
-                    </td>
-                    <td>
-                        
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
-                                 style="width: 28px; height: 28px; font-size: 11px;">
-                                <?php echo e(strtoupper(substr($p->created_by_name ?? 'U', 0, 1))); ?>
-
-                            </div>
-                            <div class="small">
-                                <div class="fw-semibold"><?php echo e($p->created_by_name ?? '—'); ?></div>
-                                <div class="text-muted text-capitalize">
-                                    <?php echo e($p->created_by_role ?? ''); ?>
-
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <?php if($p->is_active): ?>
-                            <span class="badge bg-success">Active</span>
-                        <?php else: ?>
-                            <span class="badge bg-secondary">Inactive</span>
-                        <?php endif; ?>
-                        <?php if($p->is_featured): ?>
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill"></i> Featured
-                            </span>
-                        <?php endif; ?>
-                    </td>
-                    <td class="text-end">
-                        <div class="btn-group btn-group-sm">
-                            <a href="<?php echo e(route('seller.products.show', $p)); ?>"
-                               class="btn btn-outline-secondary">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="<?php echo e(route('seller.products.edit', $p)); ?>"
-                               class="btn btn-outline-primary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <form action="<?php echo e(route('seller.products.toggle-active', $p)); ?>"
-                                  method="POST" class="d-inline">
-                                <?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
-                                <button class="btn btn-outline-<?php echo e($p->is_active ? 'warning' : 'success'); ?>">
-                                    <i class="bi <?php echo e($p->is_active ? 'bi-pause' : 'bi-play'); ?>"></i>
-                                </button>
-                            </form>
-                            <form action="<?php echo e(route('seller.products.destroy', $p)); ?>"
-                                  method="POST"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Delete this item?')">
-                                <?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
-                                <button class="btn btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
-                <tr>
-                    <td colspan="7" class="text-center py-5 text-muted">
-                        No items yet.
-                        <a href="<?php echo e(route('seller.products.create', ['branch_id' => $branch->id])); ?>">
-                            Create your first item
-                        </a>
-                    </td>
-                </tr>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</div>
-
-            <?php if($products->hasPages()): ?>
-                <div class="card-footer bg-white py-3">
-                    <?php echo e($products->links()); ?>
-
+        <div class="card border-0 shadow-sm mb-4"><div class="card-body">
+            <form method="GET" action="<?php echo e(route('seller.products.index')); ?>">
+                <input type="hidden" name="branch_id" value="<?php echo e($branch->id); ?>">
+                <div class="form-row align-items-end">
+                    <div class="col-md-3 form-group"><label>Branch</label><select class="form-control" onchange="if(this.value) location.href='<?php echo e(route('seller.products.index')); ?>?branch_id='+encodeURIComponent(this.value)">
+                        <?php $__currentLoopData = $branches; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $branchOption): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($branchOption->id); ?>" <?php if($branchOption->id == $branch->id): echo 'selected'; endif; ?>><?php echo e($branchOption->name ?? ('Branch #'.$branchOption->id)); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                    </select></div>
+                    <div class="col-md-3 form-group"><label>Service</label><select name="service_id" class="form-control"><option value="">All enabled services</option><?php $__currentLoopData = $services; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $service): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?><option value="<?php echo e($service->id); ?>" <?php if(request('service_id') == $service->id): echo 'selected'; endif; ?>><?php echo e($service->name ?? $service->label ?? $service->code); ?></option><?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?></select></div>
+                    <div class="col-md-2 form-group"><label>Status</label><select name="status" class="form-control">
+                        <option value="">All statuses</option><option value="active" <?php if(request('status')==='active'): echo 'selected'; endif; ?>>Active</option><option value="inactive" <?php if(request('status')==='inactive'): echo 'selected'; endif; ?>>Inactive</option><option value="out_of_stock" <?php if(request('status')==='out_of_stock'): echo 'selected'; endif; ?>>Out of stock</option>
+                    </select></div>
+                    <div class="col-md-3 form-group"><label>Search</label><input type="search" name="search" class="form-control" value="<?php echo e(request('search')); ?>" placeholder="Name, SKU or description"></div>
+                    <div class="col-md-1 form-group"><button class="btn btn-primary btn-block" type="submit" title="Filter"><i class="fas fa-search"></i></button></div>
                 </div>
-            <?php endif; ?>
+            </form>
+        </div></div>
+
+        <div class="card border-0 shadow-sm"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h5 class="mb-0">Listing inventory</h5><span class="text-muted small"><?php echo e($products->total()); ?> result(s)</span></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="thead-light"><tr><th>Product</th><th>Service</th><th>Price</th><th>Stock</th><th>Status</th><th>Featured</th><th>Created by</th><th class="text-right">Actions</th></tr></thead>
+                    <tbody>
+                    <?php $__empty_1 = true; $__currentLoopData = $products; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $product): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
+                        <tr>
+                            <td style="min-width:220px"><div class="d-flex align-items-center">
+                                <?php if($product->thumbnail): ?><img src="<?php echo e(asset('storage/'.$product->thumbnail)); ?>" alt="" style="width:54px;height:54px;object-fit:cover" class="rounded border mr-3"><?php else: ?><div class="rounded bg-light border mr-3 d-flex align-items-center justify-content-center" style="width:54px;height:54px"><i class="fas fa-image text-muted"></i></div><?php endif; ?>
+                                <div><a class="font-weight-bold text-dark" href="<?php echo e(route('seller.products.show', $product)); ?>"><?php echo e($product->name); ?></a><div class="small text-muted"><?php echo e($product->sku ?: 'No SKU'); ?></div></div>
+                            </div></td>
+                            <td><?php echo e($product->service->name ?? $product->service->label ?? $product->service->code ?? '—'); ?></td>
+                            <td><strong>Rs. <?php echo e(number_format((float)$product->price, 2)); ?></strong><?php if($product->compare_price): ?><div class="small text-muted"><del>Rs. <?php echo e(number_format((float)$product->compare_price, 2)); ?></del></div><?php endif; ?></td>
+                            <td><?php echo e($product->track_stock ? number_format((int)$product->stock_quantity) : 'Not tracked'); ?><div class="small text-muted"><?php echo e($product->unit); ?></div></td>
+                            <td><span class="badge badge-<?php echo e($product->is_active ? 'success' : 'secondary'); ?>"><?php echo e($product->is_active ? 'Active' : 'Inactive'); ?></span></td>
+                            <td>
+                                <form method="POST" action="<?php echo e(route('seller.products.toggle-featured', $product)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
+                                    <button class="btn btn-sm <?php echo e($product->is_featured ? 'btn-warning' : 'btn-outline-secondary'); ?>" type="submit" title="Toggle featured"><i class="fas fa-star"></i> <?php echo e($product->is_featured ? 'Featured' : 'Feature'); ?></button>
+                                </form>
+                            </td>
+                            <td><?php echo e($product->created_by_label ?? ($product->creator->name ?? '—')); ?></td>
+                            <td class="text-right" style="min-width:180px">
+                                <a href="<?php echo e(route('seller.products.show', $product)); ?>" class="btn btn-sm btn-outline-info" title="View"><i class="fas fa-eye"></i></a>
+                                <a href="<?php echo e(route('seller.products.edit', $product)); ?>" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                                <form class="d-inline" method="POST" action="<?php echo e(route('seller.products.toggle-active', $product)); ?>"><?php echo csrf_field(); ?> <?php echo method_field('PATCH'); ?>
+                                    <button class="btn btn-sm btn-outline-<?php echo e($product->is_active ? 'secondary' : 'success'); ?>" type="submit" title="Toggle active"><i class="fas fa-power-off"></i></button>
+                                </form>
+                                <form class="d-inline" method="POST" action="<?php echo e(route('seller.products.destroy', $product)); ?>" onsubmit="return confirm('Delete this product and its images? This cannot be undone.')"><?php echo csrf_field(); ?> <?php echo method_field('DELETE'); ?>
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
+                        <tr><td colspan="8" class="text-center py-5"><i class="fas fa-box-open fa-2x text-muted mb-3"></i><p class="mb-2">No products found for these filters.</p><a href="<?php echo e(route('seller.products.create', ['branch_id' => $branch->id])); ?>" class="btn btn-sm btn-primary">Create your first listing</a></td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+            <?php if($products->hasPages()): ?><div class="card-footer bg-white"><?php echo e($products->links()); ?></div><?php endif; ?>
         </div>
     <?php endif; ?>
 </div>
 <?php $__env->stopSection(); ?>
+
 <?php echo $__env->make('layouts.seller', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH C:\xampp\htdocs\tolbazar\resources\views/seller/products/index.blade.php ENDPATH**/ ?>

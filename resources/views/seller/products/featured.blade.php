@@ -1,116 +1,37 @@
-{{-- resources/views/seller/products/featured.blade.php --}}
 @extends('layouts.seller')
 
-@section('title', 'Featured Items')
+@section('title', 'Featured Products')
 
 @section('content')
 <div class="container-fluid py-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h4 class="mb-1 fw-bold">
-                <i class="bi bi-star-fill me-2 text-warning"></i> Featured Items
-            </h4>
-            <p class="text-muted mb-0 small">
-                Branch: <strong>{{ $branch->name }}</strong> •
-                Toggle which items are featured on your storefront
-            </p>
-        </div>
-        <a href="{{ route('seller.products.index', ['branch_id' => $branch->id]) }}"
-           class="btn btn-outline-secondary btn-sm">
-            <i class="bi bi-arrow-left me-1"></i> Back to Items
-        </a>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div><h1 class="h3 mb-1">Featured Listings</h1><p class="text-muted mb-0">Toggle featured placement for listings in this branch.</p></div>
+        <a href="{{ route('seller.products.index', ['branch_id' => $branch->id]) }}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left mr-1"></i> Back to products</a>
     </div>
-
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width: 50px;">#</th>
-                            <th>Item</th>
-                            <th>Service</th>
-                            <th>Price</th>
-                            <th>Created By</th>
-                            <th class="text-end">Featured</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($products as $p)
-                            @php
-                                $key = $p->service?->slug ?? $p->service?->name;
-                                $meta = $serviceCatalog[$key] ?? ['icon' => 'bi-tag', 'label' => '—'];
-                            @endphp
-                            <tr>
-                                <td class="text-muted small">{{ $loop->iteration }}</td>
-                                <td>
-                                    <div class="d-flex align-items-center gap-2">
-                                        @if($p->image_url)
-                                            <img src="{{ $p->image_url }}"
-                                                 class="rounded"
-                                                 style="width: 40px; height: 40px; object-fit: cover;">
-                                        @else
-                                            <div class="rounded bg-light d-flex align-items-center justify-content-center"
-                                                 style="width: 40px; height: 40px;">
-                                                <i class="bi bi-image text-muted"></i>
-                                            </div>
-                                        @endif
-                                        <div>
-                                            <div class="fw-semibold small">{{ $p->name }}</div>
-                                            <div class="text-muted small">SKU: {{ $p->sku }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="badge bg-light text-dark">
-                                        <i class="bi {{ $meta['icon'] }} me-1"></i>
-                                        {{ $meta['label'] }}
-                                    </span>
-                                </td>
-                                <td class="fw-semibold">Rs. {{ number_format($p->price, 2) }}</td>
-                                <td class="small">
-                                    {{ $p->created_by_label }}
-                                </td>
-                                <td class="text-end">
-                                    <form action="{{ route('seller.products.toggle-featured', $p) }}"
-                                          method="POST"
-                                          class="d-inline">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit"
-                                                class="btn btn-sm {{ $p->is_featured ? 'btn-warning' : 'btn-outline-secondary' }}"
-                                                title="Toggle featured">
-                                            <i class="bi {{ $p->is_featured ? 'bi-star-fill' : 'bi-star' }}"></i>
-                                            {{ $p->is_featured ? 'Featured' : 'Not Featured' }}
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        @empty
-                            <tr>
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="bi bi-star fs-1 d-block mb-2"></i>
-                                    No items yet. Create some first.
-                                </td>
-                            </tr>
-                        @endforelse
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        @if($products->hasPages())
-            <div class="card-footer bg-white border-0">
-                {{ $products->links() }}
-            </div>
-        @endif
+    @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if(session('error'))<div class="alert alert-danger">{{ session('error') }}</div>@endif
+    <div class="card border-0 shadow-sm"><div class="table-responsive"><table class="table table-hover mb-0">
+        <thead class="thead-light"><tr><th>Listing</th><th>Service</th><th>Price</th><th>Status</th><th>Featured</th><th>Creator</th><th class="text-right">Actions</th></tr></thead>
+        <tbody>
+        @forelse($products as $product)
+            <tr>
+                <td><div class="d-flex align-items-center">
+                    @if($product->thumbnail)<img src="{{ asset('storage/'.$product->thumbnail) }}" class="rounded border mr-3" style="width:48px;height:48px;object-fit:cover" alt="">@endif
+                    <div><a class="font-weight-bold text-dark" href="{{ route('seller.products.show',$product) }}">{{ $product->name }}</a><div class="small text-muted">{{ $product->sku ?: 'No SKU' }}</div></div>
+                </div></td>
+                <td>{{ $product->service->name ?? $product->service->label ?? $product->service->code ?? '—' }}</td>
+                <td>Rs. {{ number_format((float)$product->price,2) }}</td>
+                <td><span class="badge badge-{{ $product->is_active ? 'success' : 'secondary' }}">{{ $product->is_active ? 'Active' : 'Inactive' }}</span></td>
+                <td><form method="POST" action="{{ route('seller.products.toggle-featured',$product) }}">@csrf @method('PATCH')
+                    <button class="btn btn-sm {{ $product->is_featured ? 'btn-warning' : 'btn-outline-secondary' }}" type="submit"><i class="fas fa-star mr-1"></i>{{ $product->is_featured ? 'Featured' : 'Not featured' }}</button>
+                </form></td>
+                <td>{{ $product->created_by_label ?? ($product->creator->name ?? '—') }}</td>
+                <td class="text-right"><a class="btn btn-sm btn-outline-info" href="{{ route('seller.products.show',$product) }}"><i class="fas fa-eye"></i></a> <a class="btn btn-sm btn-outline-primary" href="{{ route('seller.products.edit',$product) }}"><i class="fas fa-edit"></i></a></td>
+            </tr>
+        @empty<tr><td colspan="7" class="text-center text-muted py-5">No listings available for this branch.</td></tr>@endforelse
+        </tbody>
+    </table></div>
+    @if($products->hasPages())<div class="card-footer bg-white">{{ $products->links() }}</div>@endif
     </div>
 </div>
 @endsection

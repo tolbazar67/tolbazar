@@ -47,5 +47,8 @@ return [
         'redirect' => env('GOOGLE_CALLBACK_REDIRECT'),
     ],
 
+    'commission' => [
+    'user_id' => env('COMMISSION_USER_ID'),
+],
 
 ];

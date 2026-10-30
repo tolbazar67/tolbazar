@@ -126,7 +126,7 @@ class ProductController extends Controller
             });
         }
 
-        $products = $query->orderByDesc('created_at')->paginate(15)->withQueryString();
+        $products = $query->orderByDesc('created_at')->paginate(50)->withQueryString();
 
         $stats = [
             'total'        => Product::where('branch_id', $branch->id)->count(),

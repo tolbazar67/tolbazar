@@ -8,17 +8,25 @@ use App\Models\Seller;
 use App\Models\SellerBranch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class SellerController extends Controller
 {
     /**
+     * Canonical role names — never change in DB.
+     * Constants avoid typos and magic strings.
+     */
+    private const ROLE_SELLER   = 'Seller';
+    private const ROLE_CUSTOMER = 'Customer';
+
+    /**
      * ============================================================
-     * SHOW APPLY FORM — behavior:
-     *   1. Branch Staff (manager/staff)  → dashboard
-     *   2. Owner (sellerProfile exists)  → dashboard
-     *   3. New customer                  → apply form
+     * SHOW APPLY FORM
      * ============================================================
+     * 1. Branch staff (manager/staff)   → seller dashboard
+     * 2. Owner with existing profile    → seller dashboard
+     * 3. New customer                   → seller apply form
      */
     public function showApplyForm()
     {
@@ -28,9 +36,7 @@ class SellerController extends Controller
             return redirect()->route('login');
         }
 
-        // ------------------------------------------------------------
-        // 1. Branch Staff (manager / staff) → dashboard
-        // ------------------------------------------------------------
+        // 1. Branch staff → seller dashboard
         if ($user->isBranchStaff()) {
             $staff = $user->branchStaff;
 
@@ -47,88 +53,109 @@ class SellerController extends Controller
                 'active_branch_id'   => $staff->branch_id,
                 'active_branch_role' => $staff->role,
             ]);
-            $user->update(['active_mode' => 'seller']);
+
+            if ($user->active_mode !== 'seller') {
+                $user->update(['active_mode' => 'seller']);
+            }
 
             return redirect()->route('seller.dashboard')
                 ->with('info', 'You are a branch ' . ucfirst($staff->role) . '. Manage your branch from the dashboard.');
         }
 
-        // ------------------------------------------------------------
-        // 2. Owner → dashboard
-        // ------------------------------------------------------------
+        // 2. Owner with existing profile → dashboard
         if ($user->sellerProfile) {
-            $user->update(['active_mode' => 'seller']);
+            if ($user->active_mode !== 'seller') {
+                $user->update(['active_mode' => 'seller']);
+            }
+
             return redirect()->route('seller.dashboard');
         }
 
-        // ------------------------------------------------------------
         // 3. New customer → apply form
-        // ------------------------------------------------------------
         return view('seller.apply');
     }
 
     /**
      * ============================================================
-     * STORE APPLY — register new seller + HQ branch
+     * STORE APPLY
      * ============================================================
+     * Registers a new seller + HQ branch.
+     *
+     * STRICT SEPARATION:
+     * Removes the Customer role so the account permanently
+     * becomes a Seller. Seller cannot switch back to customer.
      */
     public function storeApply(Request $request)
     {
         $user = auth()->user();
 
-        // Staff ले seller register गर्न पाउँदैन
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        // Staff cannot register as seller
         if ($user->isBranchStaff()) {
             return redirect()->route('seller.dashboard')
                 ->with('error', 'You are a branch staff and cannot register as a seller.');
         }
 
-        // पहिल्यै seller भइसकेको छ भने
+        // Already a seller
         if ($user->sellerProfile) {
             return redirect()->route('seller.dashboard')
                 ->with('error', 'You already have a store registered.');
         }
 
-        $request->validate([
-            'store_name'      => 'required|string|max:255|unique:sellers,store_name',
-            'phone'           => 'required|string|max:20',
-            'address'         => 'required|string|max:255',
-            'pan_vat_number'  => 'nullable|string|max:50',
-            'branch_name'     => 'required|string|max:255',
-            'branch_phone'    => 'required|string|max:20',
-            'branch_address'  => 'required|string|max:255',
-            'branch_email'    => 'nullable|email|max:255',
+        $validated = $request->validate([
+            'store_name'     => 'required|string|max:255|unique:sellers,store_name',
+            'phone'          => 'required|string|max:20',
+            'address'        => 'required|string|max:255',
+            'pan_vat_number' => 'nullable|string|max:50',
+            'branch_name'    => 'required|string|max:255',
+            'branch_phone'   => 'required|string|max:20',
+            'branch_address' => 'required|string|max:255',
+            'branch_email'   => 'nullable|email|max:255',
         ]);
 
         DB::beginTransaction();
 
         try {
+            // 1. Create seller profile
             $seller = Seller::create([
-                'user_id'         => $user->id,
-                'store_name'      => $request->store_name,
-                'slug'            => Str::slug($request->store_name) . '-' . rand(1000, 9999),
-                'phone'           => $request->phone,
-                'address'         => $request->address,
-                'pan_vat_number'  => $request->pan_vat_number,
-                'status'          => 1,
+                'user_id'        => $user->id,
+                'store_name'     => $validated['store_name'],
+                'slug'           => Str::slug($validated['store_name']) . '-' . rand(1000, 9999),
+                'phone'          => $validated['phone'],
+                'address'        => $validated['address'],
+                'pan_vat_number' => $validated['pan_vat_number'] ?? null,
+                'status'         => 1,
             ]);
 
+            // 2. Create HQ branch (default)
             $hqBranch = SellerBranch::create([
                 'seller_id'   => $seller->id,
-                'branch_name' => $request->branch_name,
+                'branch_name' => $validated['branch_name'],
                 'branch_code' => 'HQ-' . strtoupper(Str::random(6)),
-                'phone'       => $request->branch_phone,
-                'email'       => $request->branch_email ?? $user->email,
-                'address'     => $request->branch_address,
+                'phone'       => $validated['branch_phone'],
+                'email'       => $validated['branch_email'] ?? $user->email,
+                'address'     => $validated['branch_address'],
                 'is_default'  => 1,
                 'manager_id'  => $user->id,
                 'status'      => 1,
             ]);
 
-            $sellerRole = Role::where('name', 'Seller')->first();
-            if ($sellerRole && !$user->roles()->where('role_id', $sellerRole->id)->exists()) {
+            // 3. Assign Seller role
+            $sellerRole = Role::where('name', self::ROLE_SELLER)->first();
+            if ($sellerRole && !$user->roles()->where('roles.id', $sellerRole->id)->exists()) {
                 $user->roles()->attach($sellerRole->id);
             }
 
+            // 4. STRICT SEPARATION — remove Customer role
+            $customerRole = Role::where('name', self::ROLE_CUSTOMER)->first();
+            if ($customerRole) {
+                $user->roles()->detach($customerRole->id);
+            }
+
+            // 5. Switch account to seller mode
             $user->update(['active_mode' => 'seller']);
             session([
                 'active_branch_id'   => $hqBranch->id,
@@ -137,11 +164,23 @@ class SellerController extends Controller
 
             DB::commit();
 
+            Log::info('Seller registered', [
+                'user_id'   => $user->id,
+                'seller_id' => $seller->id,
+                'branch_id' => $hqBranch->id,
+            ]);
+
             return redirect()->route('seller.dashboard')
                 ->with('success', 'Store and HQ branch registered successfully!');
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             DB::rollBack();
+
+            Log::error('Seller registration failed', [
+                'user_id' => $user->id,
+                'error'   => $e->getMessage(),
+            ]);
+
             return back()->withInput()
                 ->with('error', 'Registration failed: ' . $e->getMessage());
         }
@@ -149,16 +188,15 @@ class SellerController extends Controller
 
     /**
      * ============================================================
-     * DASHBOARD — renders the right view for owner / manager / staff
+     * DASHBOARD
      * ============================================================
+     * Renders the correct view for owner / manager / staff.
      */
     public function dashboard()
     {
         $user = auth()->user();
 
-        // ------------------------------------------------------------
-        // 1. Branch Staff (manager / staff)
-        // ------------------------------------------------------------
+        // 1. Branch staff
         if ($user->isBranchStaff()) {
             $staff = $user->branchStaff;
 
@@ -179,16 +217,12 @@ class SellerController extends Controller
                 'active_branch_role' => $staff->role,
             ]);
 
-            if ($staff->role === 'manager') {
-                return view('seller.manager-dashboard');
-            }
-
-            return view('seller.staff-dashboard');
+            return $staff->role === 'manager'
+                ? view('seller.manager-dashboard')
+                : view('seller.staff-dashboard');
         }
 
-        // ------------------------------------------------------------
         // 2. Owner
-        // ------------------------------------------------------------
         $seller = $user->sellerProfile;
 
         if (!$seller) {
@@ -196,8 +230,7 @@ class SellerController extends Controller
                 ->with('error', 'Please register your store first.');
         }
 
-        $activeBranchRole = session('active_branch_role', 'owner');
-        $activeBranchId   = session('active_branch_id');
+        $activeBranchId = session('active_branch_id');
 
         $branches = $seller->branches()
             ->where('status', 1)
@@ -214,16 +247,21 @@ class SellerController extends Controller
                 ->with('error', 'No active branch found. Please create one.');
         }
 
-        if (session('active_branch_id') != $activeBranch->id) {
+        // Ensure session reflects current active branch
+        if ((int) session('active_branch_id') !== (int) $activeBranch->id) {
             session(['active_branch_id' => $activeBranch->id]);
         }
         if (session('active_branch_role') !== 'owner') {
             session(['active_branch_role' => 'owner']);
         }
 
+        $activeBranchRole = 'owner';
+
         $stats = [
             'branches_count' => $branches->count(),
-            'staff_count'    => BranchStaff::where('seller_id', $seller->id)->where('status', 1)->count(),
+            'staff_count'    => BranchStaff::where('seller_id', $seller->id)
+                                    ->where('status', 1)
+                                    ->count(),
             'orders_pending' => 0,
             'total_earnings' => 0,
             'products_count' => 0,
@@ -240,8 +278,13 @@ class SellerController extends Controller
         $recentActivity = collect();
 
         return view('seller.dashboard', compact(
-            'seller', 'branches', 'activeBranch', 'activeBranchRole',
-            'stats', 'team', 'recentActivity'
+            'seller',
+            'branches',
+            'activeBranch',
+            'activeBranchRole',
+            'stats',
+            'team',
+            'recentActivity'
         ));
     }
 }

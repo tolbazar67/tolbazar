@@ -1,274 +1,97 @@
 @extends('layouts.seller')
 
-@section('title', 'My Products')
+@section('title', 'Products')
 
 @section('content')
 <div class="container-fluid py-4">
-
-    {{-- HEADER --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-            <h3 class="fw-bold mb-1">📦 Products</h3>
-            <p class="text-muted mb-0 small">
-                Manage products for <strong>{{ $branch->branch_name }}</strong>
-            </p>
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+        <div><h1 class="h3 mb-1">Products & Services</h1><p class="text-muted mb-0">Manage listings for your branches.</p></div>
+        <div class="d-flex flex-wrap">
+            <a href="{{ route('seller.products.featured', ['branch_id' => $branch->id]) }}" class="btn btn-outline-warning mr-2 mb-2"><i class="fas fa-star mr-1"></i> Featured</a>
+            <a href="{{ route('seller.products.create', ['branch_id' => $branch->id]) }}" class="btn btn-primary mb-2"><i class="fas fa-plus mr-1"></i> Add product</a>
         </div>
-        @if(!$noServicesFlag)
-            <a href="{{ route('seller.products.create', ['branch_id' => $branch->id]) }}"
-               class="btn btn-primary">
-                <i class="bi bi-plus-lg"></i> Add Product
-            </a>
-        @endif
     </div>
 
-    {{-- NO SERVICES WARNING --}}
-    @if($noServicesFlag)
-        <div class="alert alert-warning d-flex align-items-center gap-2">
-            <i class="bi bi-exclamation-triangle-fill fs-4"></i>
-            <div>
-                <strong>No services enabled on this branch.</strong>
-                <p class="mb-0 small">Please enable at least one service first.</p>
-            </div>
-            <a href="{{ route('seller.services.index', ['branch_id' => $branch->id]) }}"
-               class="btn btn-warning btn-sm ms-auto text-white">
-                <i class="bi bi-grid-3x3-gap-fill"></i> Enable Services
-            </a>
-        </div>
-    @endif
+    @if(session('success'))<div class="alert alert-success alert-dismissible fade show">{{ session('success') }}<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div>@endif
+    @if(session('error'))<div class="alert alert-danger alert-dismissible fade show">{{ session('error') }}<button type="button" class="close" data-dismiss="alert"><span>&times;</span></button></div>@endif
 
-    {{-- FLASH --}}
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show">
-            <i class="bi bi-check-circle-fill me-1"></i> {{ session('success') }}
-            <button class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show">
-            <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ session('error') }}
-            <button class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    @endif
-
-    {{-- BRANCH SWITCHER (owner with multiple branches) --}}
-    @if($branches->count() > 1)
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body py-2">
-                <div class="d-flex align-items-center gap-2 flex-wrap">
-                    <span class="text-muted small fw-semibold">Branch:</span>
-                    @foreach($branches as $b)
-                        <a href="{{ route('seller.products.index', ['branch_id' => $b->id]) }}"
-                           class="btn btn-sm {{ $b->id == $branch->id ? 'btn-primary' : 'btn-outline-secondary' }}">
-                            {{ $b->branch_name }}
-                            @if($b->is_default)
-                                <span class="badge bg-warning text-dark" style="font-size:.6rem;">HQ</span>
-                            @endif
-                        </a>
-                    @endforeach
-                </div>
-            </div>
-        </div>
-    @endif
-
-    @if(!$noServicesFlag)
-        {{-- STATS --}}
-        <div class="row g-3 mb-3">
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Total</div>
-                        <h3 class="fw-bold mb-0">{{ $stats['total'] }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Active</div>
-                        <h3 class="fw-bold mb-0 text-success">{{ $stats['active'] }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Inactive</div>
-                        <h3 class="fw-bold mb-0 text-secondary">{{ $stats['inactive'] }}</h3>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3 col-6">
-                <div class="card border-0 shadow-sm">
-                    <div class="card-body">
-                        <div class="text-muted small">Out of Stock</div>
-                        <h3 class="fw-bold mb-0 text-danger">{{ $stats['out_of_stock'] }}</h3>
-                    </div>
-                </div>
-            </div>
+    @if(!empty($noServicesFlag))
+        <div class="card border-0 shadow-sm"><div class="card-body text-center py-5">
+            <i class="fas fa-layer-group fa-3x text-muted mb-3"></i><h4>No services enabled</h4>
+            <p class="text-muted">Enable a service for this branch before adding a product or service listing.</p>
+            <a class="btn btn-primary" href="{{ route('seller.services.index', ['branch_id' => $branch->id]) }}">Manage branch services</a>
+        </div></div>
+    @else
+        <div class="row mb-4">
+            @foreach([
+                ['Total listings', $stats['total'] ?? 0, 'fa-boxes', 'primary'],
+                ['Active', $stats['active'] ?? 0, 'fa-check-circle', 'success'],
+                ['Inactive', $stats['inactive'] ?? 0, 'fa-pause-circle', 'secondary'],
+                ['Out of stock', $stats['out_of_stock'] ?? 0, 'fa-exclamation-triangle', 'danger'],
+            ] as [$label, $count, $icon, $color])
+                <div class="col-6 col-xl-3 mb-3"><div class="card border-0 shadow-sm h-100"><div class="card-body d-flex align-items-center">
+                    <div class="rounded bg-light p-3 mr-3"><i class="fas {{ $icon }} text-{{ $color }} fa-lg"></i></div>
+                    <div><div class="text-muted small">{{ $label }}</div><div class="h4 mb-0">{{ number_format($count) }}</div></div>
+                </div></div></div>
+            @endforeach
         </div>
 
-        {{-- FILTERS --}}
-        <div class="card border-0 shadow-sm mb-3">
-            <div class="card-body">
-                <form method="GET" class="row g-2">
-                    <input type="hidden" name="branch_id" value="{{ $branch->id }}">
-
-                    <div class="col-md-4">
-                        <input type="text" name="search"
-                               value="{{ request('search') }}"
-                               class="form-control"
-                               placeholder="Search by name, SKU...">
-                    </div>
-                    <div class="col-md-3">
-                        <select name="service_id" class="form-select" onchange="this.form.submit()">
-                            <option value="">All Services</option>
-                            @foreach($services as $s)
-                                <option value="{{ $s->id }}"
-                                    {{ request('service_id') == $s->id ? 'selected' : '' }}>
-                                    {{ $s->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <select name="status" class="form-select" onchange="this.form.submit()">
-                            <option value="">All Status</option>
-                            <option value="active"       {{ request('status') === 'active' ? 'selected' : '' }}>Active</option>
-                            <option value="inactive"     {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive</option>
-                            <option value="out_of_stock" {{ request('status') === 'out_of_stock' ? 'selected' : '' }}>Out of Stock</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3 d-flex gap-2">
-                        <button class="btn btn-outline-primary flex-fill">Filter</button>
-                        @if(request()->hasAny(['search', 'service_id', 'status']))
-                            <a href="{{ route('seller.products.index', ['branch_id' => $branch->id]) }}"
-                               class="btn btn-outline-secondary">
-                                <i class="bi bi-x-lg"></i>
-                            </a>
-                        @endif
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        {{-- TABLE --}}
-        <div class="card border-0 shadow-sm">
-            
-<div class="table-responsive">
-    <table class="table table-hover align-middle mb-0">
-        <thead class="table-light">
-            <tr>
-                <th>Item</th>
-                <th>Price</th>
-                <th>Stock</th>
-                <th>Created By</th>
-                <th>Status</th>
-                <th class="text-end">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($products as $p)
-                
-                <tr>
-                    <td>
-                        <div class="d-flex align-items-center gap-2">
-                            @if($p->image_url)
-                                <img src="{{ $p->image_url }}"
-                                     class="rounded"
-                                     style="width: 42px; height: 42px; object-fit: cover;">
-                            @endif
-                            <div>
-                                <div class="fw-semibold">{{ $p->name }}</div>
-                                <div class="text-muted small">{{ $p->sku }}</div>
-                            </div>
-                        </div>
-                    </td>
-                    
-                    <td class="fw-semibold">Rs. {{ number_format($p->price, 2) }}</td>
-                    <td>
-                        @if($p->stock_quantity > 0)
-                            <span class="badge bg-success-subtle text-success">
-                                {{ $p->stock_quantity }} in stock
-                            </span>
-                        @else
-                            <span class="badge bg-danger-subtle text-danger">Out of stock</span>
-                        @endif
-                    </td>
-                    <td>
-                        {{-- 👇 CREATED BY COLUMN --}}
-                        <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center"
-                                 style="width: 28px; height: 28px; font-size: 11px;">
-                                {{ strtoupper(substr($p->created_by_name ?? 'U', 0, 1)) }}
-                            </div>
-                            <div class="small">
-                                <div class="fw-semibold">{{ $p->created_by_name ?? '—' }}</div>
-                                <div class="text-muted text-capitalize">
-                                    {{ $p->created_by_role ?? '' }}
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        @if($p->is_active)
-                            <span class="badge bg-success">Active</span>
-                        @else
-                            <span class="badge bg-secondary">Inactive</span>
-                        @endif
-                        @if($p->is_featured)
-                            <span class="badge bg-warning text-dark">
-                                <i class="bi bi-star-fill"></i> Featured
-                            </span>
-                        @endif
-                    </td>
-                    <td class="text-end">
-                        <div class="btn-group btn-group-sm">
-                            <a href="{{ route('seller.products.show', $p) }}"
-                               class="btn btn-outline-secondary">
-                                <i class="bi bi-eye"></i>
-                            </a>
-                            <a href="{{ route('seller.products.edit', $p) }}"
-                               class="btn btn-outline-primary">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <form action="{{ route('seller.products.toggle-active', $p) }}"
-                                  method="POST" class="d-inline">
-                                @csrf @method('PATCH')
-                                <button class="btn btn-outline-{{ $p->is_active ? 'warning' : 'success' }}">
-                                    <i class="bi {{ $p->is_active ? 'bi-pause' : 'bi-play' }}"></i>
-                                </button>
-                            </form>
-                            <form action="{{ route('seller.products.destroy', $p) }}"
-                                  method="POST"
-                                  class="d-inline"
-                                  onsubmit="return confirm('Delete this item?')">
-                                @csrf @method('DELETE')
-                                <button class="btn btn-outline-danger">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                    </td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="7" class="text-center py-5 text-muted">
-                        No items yet.
-                        <a href="{{ route('seller.products.create', ['branch_id' => $branch->id]) }}">
-                            Create your first item
-                        </a>
-                    </td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
-
-            @if($products->hasPages())
-                <div class="card-footer bg-white py-3">
-                    {{ $products->links() }}
+        <div class="card border-0 shadow-sm mb-4"><div class="card-body">
+            <form method="GET" action="{{ route('seller.products.index') }}">
+                <input type="hidden" name="branch_id" value="{{ $branch->id }}">
+                <div class="form-row align-items-end">
+                    <div class="col-md-3 form-group"><label>Branch</label><select class="form-control" onchange="if(this.value) location.href='{{ route('seller.products.index') }}?branch_id='+encodeURIComponent(this.value)">
+                        @foreach($branches as $branchOption)<option value="{{ $branchOption->id }}" @selected($branchOption->id == $branch->id)>{{ $branchOption->name ?? ('Branch #'.$branchOption->id) }}</option>@endforeach
+                    </select></div>
+                    <div class="col-md-3 form-group"><label>Service</label><select name="service_id" class="form-control"><option value="">All enabled services</option>@foreach($services as $service)<option value="{{ $service->id }}" @selected(request('service_id') == $service->id)>{{ $service->name ?? $service->label ?? $service->code }}</option>@endforeach</select></div>
+                    <div class="col-md-2 form-group"><label>Status</label><select name="status" class="form-control">
+                        <option value="">All statuses</option><option value="active" @selected(request('status')==='active')>Active</option><option value="inactive" @selected(request('status')==='inactive')>Inactive</option><option value="out_of_stock" @selected(request('status')==='out_of_stock')>Out of stock</option>
+                    </select></div>
+                    <div class="col-md-3 form-group"><label>Search</label><input type="search" name="search" class="form-control" value="{{ request('search') }}" placeholder="Name, SKU or description"></div>
+                    <div class="col-md-1 form-group"><button class="btn btn-primary btn-block" type="submit" title="Filter"><i class="fas fa-search"></i></button></div>
                 </div>
-            @endif
+            </form>
+        </div></div>
+
+        <div class="card border-0 shadow-sm"><div class="card-header bg-white d-flex justify-content-between align-items-center"><h5 class="mb-0">Listing inventory</h5><span class="text-muted small">{{ $products->total() }} result(s)</span></div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="thead-light"><tr><th>Product</th><th>Service</th><th>Price</th><th>Stock</th><th>Status</th><th>Featured</th><th>Created by</th><th class="text-right">Actions</th></tr></thead>
+                    <tbody>
+                    @forelse($products as $product)
+                        <tr>
+                            <td style="min-width:220px"><div class="d-flex align-items-center">
+                                @if($product->thumbnail)<img src="{{ asset('storage/'.$product->thumbnail) }}" alt="" style="width:54px;height:54px;object-fit:cover" class="rounded border mr-3">@else<div class="rounded bg-light border mr-3 d-flex align-items-center justify-content-center" style="width:54px;height:54px"><i class="fas fa-image text-muted"></i></div>@endif
+                                <div><a class="font-weight-bold text-dark" href="{{ route('seller.products.show', $product) }}">{{ $product->name }}</a><div class="small text-muted">{{ $product->sku ?: 'No SKU' }}</div></div>
+                            </div></td>
+                            <td>{{ $product->service->name ?? $product->service->label ?? $product->service->code ?? '—' }}</td>
+                            <td><strong>Rs. {{ number_format((float)$product->price, 2) }}</strong>@if($product->compare_price)<div class="small text-muted"><del>Rs. {{ number_format((float)$product->compare_price, 2) }}</del></div>@endif</td>
+                            <td>{{ $product->track_stock ? number_format((int)$product->stock_quantity) : 'Not tracked' }}<div class="small text-muted">{{ $product->unit }}</div></td>
+                            <td><span class="badge badge-{{ $product->is_active ? 'success' : 'secondary' }}">{{ $product->is_active ? 'Active' : 'Inactive' }}</span></td>
+                            <td>
+                                <form method="POST" action="{{ route('seller.products.toggle-featured', $product) }}">@csrf @method('PATCH')
+                                    <button class="btn btn-sm {{ $product->is_featured ? 'btn-warning' : 'btn-outline-secondary' }}" type="submit" title="Toggle featured"><i class="fas fa-star"></i> {{ $product->is_featured ? 'Featured' : 'Feature' }}</button>
+                                </form>
+                            </td>
+                            <td>{{ $product->created_by_label ?? ($product->creator->name ?? '—') }}</td>
+                            <td class="text-right" style="min-width:180px">
+                                <a href="{{ route('seller.products.show', $product) }}" class="btn btn-sm btn-outline-info" title="View"><i class="fas fa-eye"></i></a>
+                                <a href="{{ route('seller.products.edit', $product) }}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fas fa-edit"></i></a>
+                                <form class="d-inline" method="POST" action="{{ route('seller.products.toggle-active', $product) }}">@csrf @method('PATCH')
+                                    <button class="btn btn-sm btn-outline-{{ $product->is_active ? 'secondary' : 'success' }}" type="submit" title="Toggle active"><i class="fas fa-power-off"></i></button>
+                                </form>
+                                <form class="d-inline" method="POST" action="{{ route('seller.products.destroy', $product) }}" onsubmit="return confirm('Delete this product and its images? This cannot be undone.')">@csrf @method('DELETE')
+                                    <button class="btn btn-sm btn-outline-danger" type="submit" title="Delete"><i class="fas fa-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="8" class="text-center py-5"><i class="fas fa-box-open fa-2x text-muted mb-3"></i><p class="mb-2">No products found for these filters.</p><a href="{{ route('seller.products.create', ['branch_id' => $branch->id]) }}" class="btn btn-sm btn-primary">Create your first listing</a></td></tr>
+                    @endforelse
+                    </tbody>
+                </table>
+            </div>
+            @if($products->hasPages())<div class="card-footer bg-white">{{ $products->links() }}</div>@endif
         </div>
     @endif
 </div>

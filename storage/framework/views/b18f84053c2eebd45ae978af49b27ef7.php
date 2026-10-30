@@ -1,5 +1,3 @@
-
-
 <?php $__env->startSection('title', 'Seller Dashboard'); ?>
 
 <?php $__env->startSection('content'); ?>

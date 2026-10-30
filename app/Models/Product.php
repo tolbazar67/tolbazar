@@ -19,6 +19,7 @@ class Product extends Model
         'branch_id',
         'service_id',
         'category_id',
+        'service_category_id',
 
         // 👇 NEW: created-by tracking
         'created_by',
@@ -127,6 +128,11 @@ class Product extends Model
     {
         return $this->belongsTo(Service::class);
     }
+
+    public function serviceCategory(): BelongsTo
+{
+    return $this->belongsTo(ServiceCategory::class, 'service_category_id');
+}
 
     public function category(): BelongsTo
     {

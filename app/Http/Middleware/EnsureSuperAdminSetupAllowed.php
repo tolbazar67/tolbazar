@@ -60,10 +60,13 @@ class EnsureSuperAdminSetupAllowed
 
     private function superAdminExists(): bool
     {
+        // Super Admin = ID 1
         $role = Role::where('id', 1)->first()
             ?? Role::where('name', 'Super Admin')->first();
 
-        if (!$role) return false;
+        if (!$role) {
+            return false;
+        }
 
         return User::whereHas('roles', function ($q) use ($role) {
             $q->where('roles.id', $role->id);

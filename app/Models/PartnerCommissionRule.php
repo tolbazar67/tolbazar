@@ -26,6 +26,7 @@ class PartnerCommissionRule extends Model
         'ends_at',
         'is_active',
         'settings',
+        'priority',
     ];
 
     protected function casts(): array
@@ -38,6 +39,7 @@ class PartnerCommissionRule extends Model
             'starts_at'  => 'datetime',
             'ends_at'    => 'datetime',
             'settings'   => 'array',
+            'priority' => 'integer',
         ];
     }
 
